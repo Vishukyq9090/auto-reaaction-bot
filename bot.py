@@ -420,7 +420,6 @@ async def callback_handler(client, callback_query):
 
     except Exception as e:
         pass
-
 # --- Background Schedule Tracker ---
 async def schedule_tracker():
     while True:
@@ -453,7 +452,44 @@ async def schedule_tracker():
                     done_msg = await app.send_message(chat_id, done_text)
                     asyncio.create_task(delete_after(done_msg, 5))
         except Exception as e:
-        # यह लाइन Render के Logs में असली कारण बता देगी
+            pass
+        await asyncio.sleep(30) # (यह लाइन बहुत ज़रूरी है)
+
+# --- ✨ Auto-Reaction with Caption Mood ---
+def get_mood_emoji(text):
+    text = str(text).lower()
+    
+    # 1. खुशी / पॉजिटिव
+    if any(word in text for word in ['happy', 'good', 'great', 'awesome', 'खुश', 'अच्छा', '🎉', 'best']):
+        return "👍"
+    # 2. दुख / नेगेटिव
+    elif any(word in text for word in ['sad', 'bad', 'crying', 'दुखी', 'खराब', 'sorry']):
+        return "😢"
+    # 3. हास्य / फनी
+    elif any(word in text for word in ['funny', 'haha', 'lol', 'joke', 'मजाक', '😂']):
+        return "😂"
+    # 4. गुस्सा / एग्रेसिव
+    elif any(word in text for word in ['angry', 'mad', 'wtf', 'गुस्सा', 'hate']):
+        return "😡"
+    else:
+        return "🔥"
+
+@app.on_message((filters.channel | filters.group) & (filters.text | filters.caption))
+async def auto_reaction_handler(client, message):
+    text_content = message.text or message.caption
+    
+    if not text_content:
+        return
+    
+    reaction_emoji = get_mood_emoji(text_content)
+    
+    try:
+        await client.send_reaction(
+            chat_id=message.chat.id,
+            message_id=message.id,
+            emoji=reaction_emoji
+        )
+    except Exception as e:
         print(f"Reaction Error: {e}")
 
 if __name__ == "__main__":
