@@ -21,7 +21,7 @@ web_app = Flask(__name__)
 
 @web_app.route('/')
 def home():
-    return "Auto-Accept Bot (Private FSub + Reactions) is Running!"
+    return "Bot is Running with Owner Panel & Reactions!"
 
 def run_server():
     port = int(os.environ.get("PORT", 8080))
@@ -32,7 +32,7 @@ API_ID = int(os.environ.get("API_ID", 12345))
 API_HASH = os.environ.get("API_HASH", "")
 BOT_TOKEN = os.environ.get("BOT_TOKEN", "")
 MONGO_URI = os.environ.get("MONGO_URI", "")
-ADMIN_ID = int(os.environ.get("ADMIN_ID", 0))
+ADMIN_ID = int(os.environ.get("ADMIN_ID", 0))  # ⚠️ आपका Telegram User ID यहाँ होना चाहिए
 
 app = Client("AutoAcceptBot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
 
@@ -47,8 +47,8 @@ global_settings_col = db["global_settings"]
 
 # --- 🌐 3. Multi-Language Dictionary ---
 TEXTS = {
-    "en": {"start": "👋 **Hello! I am a Smart Auto-Accept Bot.**\n\n**🤖 What I do:**\nI automatically accept join requests.\n\n**📝 How to use:**\n1️⃣ Add me as Admin.\n2️⃣ Type `/admin` in your channel.", "admin_panel": "🎛 **Admin Panel**\n*(Deletes in 15s)*", "promo": "🎉 **Congratulations!**\nYou've been approved in **{chat}**.\n\n🚀 Join our official community 👇", "btn_add": "➕ Add Bot to Channel", "btn_refer": "🎁 Refer & Earn", "btn_lang": "🌐 Language", "not_admin": "❌ You are not an admin!", "accepting": "⏳ Accepting...", "done": "✅ **Completed!** ({count} accepted)", "lang_set": "✅ Language set to English!"},
-    "hi": {"start": "👋 **नमस्ते! मैं एक Auto-Accept Bot हूँ।**\n\n**🤖 मैं क्या करता हूँ:**\nमैं जॉइन रिक्वेस्ट अपने आप एक्सेप्ट करता हूँ।\n\n**📝 इस्तेमाल:**\n1️⃣ मुझे चैनल में Admin बनाएं।\n2️⃣ `/admin` भेजें।", "admin_panel": "🎛 **एडमिन पैनल**\n*(15s में डिलीट)*", "promo": "🎉 **बधाई हो!**\nआपको **{chat}** में अप्रूव कर दिया गया है।\n\n🚀 हमारी कम्युनिटी जॉइन करें 👇", "btn_add": "➕ चैनल में जोड़ें", "btn_refer": "🎁 रेफर करें और कमाएं", "btn_lang": "🌐 भाषा (Language)", "not_admin": "❌ आप एडमिन नहीं हैं!", "accepting": "⏳ एक्सेप्ट कर रहा हूँ...", "done": "✅ **पूरा हुआ!** ({count} एक्सेप्ट किए)", "lang_set": "✅ भाषा हिंदी सेट हो गई!"}
+    "en": {"start": "👋 **Hello! I am a Smart Auto-Accept Bot.**\n\n**🤖 What I do:**\nI automatically accept join requests.\n\n**📝 How to use:**\n1️⃣ Add me as Admin.\n2️⃣ Type `/admin` in your channel.", "admin_panel": "🎛 **Channel Settings Panel**\n*(Deletes in 15s)*", "promo": "🎉 **Congratulations!**\nYou've been approved in **{chat}**.\n\n🚀 Join our official community 👇", "btn_add": "➕ Add Bot to Channel", "btn_refer": "🎁 Refer & Earn", "btn_lang": "🌐 Language", "not_admin": "❌ You are not an admin!", "accepting": "⏳ Accepting...", "done": "✅ **Completed!** ({count} accepted)", "lang_set": "✅ Language set to English!"},
+    "hi": {"start": "👋 **नमस्ते! मैं एक Auto-Accept Bot हूँ।**\n\n**🤖 मैं क्या करता हूँ:**\nमैं जॉइन रिक्वेस्ट अपने आप एक्सेप्ट करता हूँ।\n\n**📝 इस्तेमाल:**\n1️⃣ मुझे चैनल में Admin बनाएं।\n2️⃣ `/admin` भेजें।", "admin_panel": "🎛 **Channel Settings पैनल**\n*(15s में डिलीट)*", "promo": "🎉 **बधाई हो!**\nआपको **{chat}** में अप्रूव कर दिया गया है।\n\n🚀 हमारी कम्युनिटी जॉइन करें 👇", "btn_add": "➕ चैनल में जोड़ें", "btn_refer": "🎁 रेफर करें और कमाएं", "btn_lang": "🌐 भाषा (Language)", "not_admin": "❌ आप एडमिन नहीं हैं!", "accepting": "⏳ एक्सेप्ट कर रहा हूँ...", "done": "✅ **पूरा हुआ!** ({count} एक्सेप्ट किए)", "lang_set": "✅ भाषा हिंदी सेट हो गई!"}
 }
 
 def get_user_lang(user_id):
@@ -111,46 +111,96 @@ async def handle_join_request(client, message):
             upsert=True
         )
 
-# --- ✨ Force Subscribe Admin Command (Supports Private Channels) ---
-@app.on_message(filters.command("setfsub") & filters.private)
-async def set_fsub(client, message):
+
+# --- 👑 1. BOT OWNER PANEL (/panel) ---
+@app.on_message(filters.command("panel") & filters.private)
+async def owner_panel(client, message):
     if ADMIN_ID == 0 or message.from_user.id != ADMIN_ID:
         return
-    if len(message.command) < 2:
-        await message.reply("❌ **सही तरीका:**\nपब्लिक चैनल: `/setfsub @yourchannel`\nप्राइवेट चैनल: `/setfsub -100123456789`\n*(हटाने के लिए लिखें: `/setfsub off`)*")
-        return
+        
+    users_count = bot_users_col.count_documents({})
+    fsub_data = global_settings_col.find_one({"id": "fsub"})
+    fsub_status = "✅ ON" if fsub_data and fsub_data.get("channel") else "❌ OFF"
     
-    channel_input = message.command[1]
-    if channel_input.lower() == "off":
-        global_settings_col.update_one({"id": "fsub"}, {"$set": {"channel": None, "link": None}}, upsert=True)
-        await message.reply("✅ **Force Subscribe हटा दिया गया है!**")
-    else:
-        status_msg = await message.reply("⏳ चैनल चेक कर रहा हूँ...")
-        try:
-            # अगर -100 से शुरू होता है तो इसे Integer मानेंगे, वर्ना पब्लिक Username
-            chat_id = int(channel_input) if channel_input.startswith("-100") else channel_input
-            chat_info = await client.get_chat(chat_id)
-            
-            # इन्वाइट लिंक ढूँढना (अगर प्राइवेट है तो नया जनरेट करेगा)
-            invite_link = chat_info.invite_link
-            if not invite_link:
-                invite_link = await client.export_chat_invite_link(chat_id)
-                
-            global_settings_col.update_one(
-                {"id": "fsub"}, 
-                {"$set": {"channel": chat_id, "link": invite_link}}, 
-                upsert=True
-            )
-            await status_msg.edit_text(f"✅ **Force Subscribe सेट हो गया:** {chat_info.title}\n🔗 **लिंक:** {invite_link}")
-        except Exception as e:
-            await status_msg.edit_text(f"❌ **एरर:** बॉट को उस चैनल में पहले Admin बनाएं या ID चेक करें।\n`{e}`")
+    text = (
+        "👑 **Owner Admin Panel**\n\n"
+        f"👥 **Total Users:** {users_count}\n"
+        f"🔔 **FSub Status:** {fsub_status}\n\n"
+        "📢 **Broadcast करने का तरीका:**\n"
+        "किसी भी मैसेज, फोटो या वीडियो का Reply (रिप्लाई) करते हुए `/broadcast` लिखें।"
+    )
+    
+    kb = InlineKeyboardMarkup([
+        [InlineKeyboardButton("❌ Remove/Turn Off FSub", callback_data="owner_rm_fsub")]
+    ])
+    await message.reply(text, reply_markup=kb)
 
-# --- ✨ Start Command (With Smart FSub Logic) ---
+# --- 📢 2. OWNER BROADCAST SYSTEM (/broadcast) ---
+@app.on_message(filters.command("broadcast") & filters.private)
+async def broadcast_msg(client, message):
+    if ADMIN_ID == 0 or message.from_user.id != ADMIN_ID:
+        return
+        
+    if not message.reply_to_message:
+        await message.reply("❌ **गलत तरीका!**\nकिसी भी मैसेज, फोटो या वीडियो का रिप्लाई (Reply) करते हुए `/broadcast` लिखें।")
+        return
+        
+    status = await message.reply("⏳ **ब्रॉडकास्ट शुरू हो रहा है...**")
+    users = list(bot_users_col.find({}))
+    success, failed = 0, 0
+    
+    for u in users:
+        try:
+            await message.reply_to_message.copy(u["user_id"])
+            success += 1
+            await asyncio.sleep(0.1)  # Anti-Spam protection
+        except:
+            failed += 1
+            
+    await status.edit_text(f"✅ **Broadcast Completed!**\n\n🟢 Success: {success}\n🔴 Failed: {failed}")
+
+# --- ✨ 3. MAGIC FSUB (Auto Configure on making Admin) ---
+@app.on_chat_member_updated(filters.channel | filters.group)
+async def bot_added_as_admin(client, update):
+    try:
+        bot_info = await client.get_me()
+        if update.new_chat_member and update.new_chat_member.user.id == bot_info.id:
+            status = str(update.new_chat_member.status).lower()
+            if "administrator" in status or "owner" in status:
+                chat_id = update.chat.id
+                
+                # चैनल में स्वागत मैसेज
+                await client.send_message(
+                    chat_id,
+                    "✅ **Bot Successfully Added as Admin!**\n🟢 Auto-Accept: ON\n🟢 Auto-Reactions: ON"
+                )
+
+                # 👑 MAGIC TRICK: अगर बॉट को Owner (ADMIN_ID) ने एडमिन बनाया है, तो FSub ऑटो-सेट कर दो!
+                if update.from_user and update.from_user.id == ADMIN_ID:
+                    invite_link = update.chat.invite_link
+                    if not invite_link:
+                        invite_link = await client.export_chat_invite_link(chat_id)
+                        
+                    global_settings_col.update_one(
+                        {"id": "fsub"}, 
+                        {"$set": {"channel": chat_id, "link": invite_link}}, 
+                        upsert=True
+                    )
+                    # Owner को DM में बता दो
+                    await client.send_message(
+                        ADMIN_ID,
+                        f"🎉 **Magic FSub Configured!**\nआपने बॉट को `{update.chat.title}` में एडमिन बनाया, इसलिए बॉट ने इसे अपना मुख्य Force Subscribe चैनल बना लिया है!"
+                    )
+    except Exception:
+        pass
+
+
+# --- ✨ Start Command (With Error-Free FSub Logic) ---
 @app.on_message(filters.command("start") & filters.private)
 async def start_command(client, message):
     user_id = message.from_user.id
     
-    # 🔒 Force Subscribe Check
+    # 🔒 Error-Free Force Subscribe Check
     fsub_data = global_settings_col.find_one({"id": "fsub"})
     if fsub_data and fsub_data.get("channel"):
         fsub_channel = fsub_data["channel"]
@@ -158,17 +208,18 @@ async def start_command(client, message):
         try:
             member = await client.get_chat_member(fsub_channel, user_id)
             if member.status in [ChatMemberStatus.BANNED, ChatMemberStatus.RESTRICTED]:
-                return
+                return # Banned users ignored
         except UserNotParticipant:
             bot_info = await client.get_me()
             fsub_kb = InlineKeyboardMarkup([
                 [InlineKeyboardButton("🔔 Subscribe Now 🔔", url=fsub_link)],
                 [InlineKeyboardButton("✅ I Have Subscribed", url=f"https://t.me/{bot_info.username}?start=start")]
             ])
-            await message.reply("🚨 **कृपया बॉट का उपयोग करने से पहले हमारे चैनल से जुड़ें!**\n\nसब्सक्राइब करने के बाद 'I Have Subscribed' पर क्लिक करें।", reply_markup=fsub_kb)
+            await message.reply("🚨 **कृपया बॉट का उपयोग करने से पहले हमारे चैनल से जुड़ें!**", reply_markup=fsub_kb)
             return
         except Exception:
-            pass # Ignore if bot is not admin in FSub channel
+            # अगर चैनल डिलीट हो गया या बॉट एडमिन से हट गया, तो एरर नहीं देगा और यूजर्स को रोकेगा नहीं
+            pass 
 
     text = message.text.split()
     user_data = bot_users_col.find_one({"user_id": user_id})
@@ -207,7 +258,8 @@ async def start_command(client, message):
     ])
     await message.reply_text(TEXTS.get(lang, TEXTS["en"])["start"], reply_markup=keyboard)
 
-# --- Admin Panel Command ---
+
+# --- ⚙️ Channel Settings Command (/admin) ---
 @app.on_message(filters.command("admin") & (filters.group | filters.channel))
 async def admin_panel(client, message):
     try:
@@ -243,6 +295,7 @@ async def admin_panel(client, message):
     except Exception as e:
         pass
 
+
 # --- Button Click Handler ---
 @app.on_callback_query()
 async def callback_handler(client, callback_query):
@@ -252,6 +305,15 @@ async def callback_handler(client, callback_query):
         msg = callback_query.message
         data = callback_query.data
         lang = get_user_lang(user_id)
+        
+        # 👑 Owner Button
+        if data == "owner_rm_fsub":
+            if user_id != ADMIN_ID:
+                return
+            global_settings_col.update_one({"id": "fsub"}, {"$set": {"channel": None, "link": None}}, upsert=True)
+            await callback_query.answer("❌ Force Subscribe हटा दिया गया है!", show_alert=True)
+            await msg.delete()
+            return
 
         if data == "btn_change_lang":
             lang_kb = InlineKeyboardMarkup([
@@ -391,6 +453,7 @@ async def callback_handler(client, callback_query):
     except Exception as e:
         pass
 
+
 # --- Background Schedule Tracker ---
 async def schedule_tracker():
     while True:
@@ -424,31 +487,9 @@ async def schedule_tracker():
         await asyncio.sleep(30)
 
 
-# --- ✨ NEW: Admin Notification with Private Channel ID ---
-@app.on_chat_member_updated(filters.channel | filters.group)
-async def bot_added_as_admin(client, update):
-    try:
-        bot_info = await client.get_me()
-        if update.new_chat_member and update.new_chat_member.user.id == bot_info.id:
-            status = str(update.new_chat_member.status).lower()
-            if "administrator" in status or "owner" in status:
-                # बॉट खुद चैनल में मैसेज भेजकर अपनी ID बताएगा
-                await client.send_message(
-                    update.chat.id,
-                    f"✅ **Bot Successfully Added as Admin!**\n\n"
-                    f"📌 **Channel ID:** `{update.chat.id}`\n"
-                    f"*(Private Channel FSub सेट करने के लिए इस ID का इस्तेमाल करें)*\n\n"
-                    f"🟢 **Auto-Accept:** ON\n"
-                    f"🟢 **Auto-Reactions:** ON\n\n"
-                    f"👉 Settings बदलने के लिए यहाँ `/admin` भेजें।"
-                )
-    except Exception:
-        pass
-
-# --- ✨ Auto-Reaction with Caption Mood ---
+# --- ✨ Auto-Reaction with Caption Mood (Perfect Fix) ---
 def get_mood_emoji(text):
     text = str(text).lower()
-    
     if any(word in text for word in ['sad', 'bad', 'crying', 'दुखी', 'खराब', 'sorry']):
         return "😢"
     elif any(word in text for word in ['funny', 'haha', 'lol', 'joke', 'मजाक', '😂']):
@@ -458,8 +499,13 @@ def get_mood_emoji(text):
     else:
         return "👍" # Default Positive Reaction
 
-@app.on_message(filters.channel | filters.group)
+# ~filters.service लगाने से बॉट "User joined channel" जैसे मैसेज पर रिएक्ट नहीं करेगा (Error बच जाएगा)
+@app.on_message((filters.channel | filters.group) & ~filters.service)
 async def auto_reaction_handler(client, message):
+    # बॉट खुद के मैसेज पर रिएक्ट नहीं करेगा (ताकि लूप न बने)
+    if message.from_user and message.from_user.is_self:
+        return
+        
     text_content = message.text or message.caption or ""
     reaction_emoji = get_mood_emoji(text_content)
     
@@ -470,10 +516,11 @@ async def auto_reaction_handler(client, message):
             emoji=reaction_emoji
         )
     except Exception as e:
-        print(f"Reaction Error: {e}")
+        # अगर चैनल में Reactions बंद हैं तो बॉट चुपचाप इग्नोर कर देगा
+        pass
 
 if __name__ == "__main__":
     threading.Thread(target=run_server, daemon=True).start()
-    print("Bot is ready Worldwide! (With Private Fsub & Reactions)")
+    print("Bot is ready Worldwide! (With Magic Fsub, Owner Panel & Reactions)")
     loop.create_task(schedule_tracker())
     app.run()
