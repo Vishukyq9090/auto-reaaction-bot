@@ -21,7 +21,7 @@ web_app = Flask(__name__)
 
 @web_app.route('/')
 def home():
-    return "Auto-Accept Bot (Top 20 Languages + Refer Clickbait) is Running!"
+    return "Auto-Accept Bot (Private FSub + Reactions) is Running!"
 
 def run_server():
     port = int(os.environ.get("PORT", 8080))
@@ -43,7 +43,7 @@ pending_users_col = db["pending_users"]
 schedules_col = db["schedules"]
 bot_users_col = db["bot_users"]
 global_welcome_col = db["global_welcome"]
-global_settings_col = db["global_settings"] # FSub Setting DB
+global_settings_col = db["global_settings"]
 
 # --- 🌐 3. Multi-Language Dictionary ---
 TEXTS = {
@@ -111,24 +111,41 @@ async def handle_join_request(client, message):
             upsert=True
         )
 
-# --- ✨ Force Subscribe Admin Command ---
+# --- ✨ Force Subscribe Admin Command (Supports Private Channels) ---
 @app.on_message(filters.command("setfsub") & filters.private)
 async def set_fsub(client, message):
     if ADMIN_ID == 0 or message.from_user.id != ADMIN_ID:
         return
     if len(message.command) < 2:
-        await message.reply("❌ **सही तरीका:** `/setfsub @yourchannel`\n(हटाने के लिए लिखें: `/setfsub off`)")
+        await message.reply("❌ **सही तरीका:**\nपब्लिक चैनल: `/setfsub @yourchannel`\nप्राइवेट चैनल: `/setfsub -100123456789`\n*(हटाने के लिए लिखें: `/setfsub off`)*")
         return
     
-    channel_username = message.command[1]
-    if channel_username.lower() == "off":
-        global_settings_col.update_one({"id": "fsub"}, {"$set": {"channel": None}}, upsert=True)
+    channel_input = message.command[1]
+    if channel_input.lower() == "off":
+        global_settings_col.update_one({"id": "fsub"}, {"$set": {"channel": None, "link": None}}, upsert=True)
         await message.reply("✅ **Force Subscribe हटा दिया गया है!**")
     else:
-        global_settings_col.update_one({"id": "fsub"}, {"$set": {"channel": channel_username}}, upsert=True)
-        await message.reply(f"✅ **Force Subscribe सेट हो गया:** {channel_username}")
+        status_msg = await message.reply("⏳ चैनल चेक कर रहा हूँ...")
+        try:
+            # अगर -100 से शुरू होता है तो इसे Integer मानेंगे, वर्ना पब्लिक Username
+            chat_id = int(channel_input) if channel_input.startswith("-100") else channel_input
+            chat_info = await client.get_chat(chat_id)
+            
+            # इन्वाइट लिंक ढूँढना (अगर प्राइवेट है तो नया जनरेट करेगा)
+            invite_link = chat_info.invite_link
+            if not invite_link:
+                invite_link = await client.export_chat_invite_link(chat_id)
+                
+            global_settings_col.update_one(
+                {"id": "fsub"}, 
+                {"$set": {"channel": chat_id, "link": invite_link}}, 
+                upsert=True
+            )
+            await status_msg.edit_text(f"✅ **Force Subscribe सेट हो गया:** {chat_info.title}\n🔗 **लिंक:** {invite_link}")
+        except Exception as e:
+            await status_msg.edit_text(f"❌ **एरर:** बॉट को उस चैनल में पहले Admin बनाएं या ID चेक करें।\n`{e}`")
 
-# --- ✨ Start Command (With FSub Logic) ---
+# --- ✨ Start Command (With Smart FSub Logic) ---
 @app.on_message(filters.command("start") & filters.private)
 async def start_command(client, message):
     user_id = message.from_user.id
@@ -137,6 +154,7 @@ async def start_command(client, message):
     fsub_data = global_settings_col.find_one({"id": "fsub"})
     if fsub_data and fsub_data.get("channel"):
         fsub_channel = fsub_data["channel"]
+        fsub_link = fsub_data.get("link", "https://t.me/")
         try:
             member = await client.get_chat_member(fsub_channel, user_id)
             if member.status in [ChatMemberStatus.BANNED, ChatMemberStatus.RESTRICTED]:
@@ -144,10 +162,10 @@ async def start_command(client, message):
         except UserNotParticipant:
             bot_info = await client.get_me()
             fsub_kb = InlineKeyboardMarkup([
-                [InlineKeyboardButton("🔔 Subscribe Now 🔔", url=f"https://t.me/{fsub_channel.replace('@', '')}")],
+                [InlineKeyboardButton("🔔 Subscribe Now 🔔", url=fsub_link)],
                 [InlineKeyboardButton("✅ I Have Subscribed", url=f"https://t.me/{bot_info.username}?start=start")]
             ])
-            await message.reply("🚨 **कृपया बॉट का उपयोग करने से पहले हमारे मुख्य चैनल से जुड़ें!**\n\nसब्सक्राइब करने के बाद 'I Have Subscribed' पर क्लिक करें।", reply_markup=fsub_kb)
+            await message.reply("🚨 **कृपया बॉट का उपयोग करने से पहले हमारे चैनल से जुड़ें!**\n\nसब्सक्राइब करने के बाद 'I Have Subscribed' पर क्लिक करें।", reply_markup=fsub_kb)
             return
         except Exception:
             pass # Ignore if bot is not admin in FSub channel
@@ -406,26 +424,28 @@ async def schedule_tracker():
         await asyncio.sleep(30)
 
 
-# --- ✨ NEW: Channel Me Admin Bante Hi Message Bhejna ---
+# --- ✨ NEW: Admin Notification with Private Channel ID ---
 @app.on_chat_member_updated(filters.channel | filters.group)
 async def bot_added_as_admin(client, update):
     try:
         bot_info = await client.get_me()
-        # Check if the updated member is the bot itself
         if update.new_chat_member and update.new_chat_member.user.id == bot_info.id:
             status = str(update.new_chat_member.status).lower()
             if "administrator" in status or "owner" in status:
+                # बॉट खुद चैनल में मैसेज भेजकर अपनी ID बताएगा
                 await client.send_message(
                     update.chat.id,
-                    "✅ **Bot Successfully Added as Admin!**\n\n"
-                    "🟢 **Auto-Accept:** ON\n"
-                    "🟢 **Auto-Reactions:** ON\n\n"
-                    "👉 Settings बदलने के लिए यहाँ `/admin` भेजें।"
+                    f"✅ **Bot Successfully Added as Admin!**\n\n"
+                    f"📌 **Channel ID:** `{update.chat.id}`\n"
+                    f"*(Private Channel FSub सेट करने के लिए इस ID का इस्तेमाल करें)*\n\n"
+                    f"🟢 **Auto-Accept:** ON\n"
+                    f"🟢 **Auto-Reactions:** ON\n\n"
+                    f"👉 Settings बदलने के लिए यहाँ `/admin` भेजें।"
                 )
     except Exception:
         pass
 
-# --- ✨ Auto-Reaction with Caption Mood (Fixed) ---
+# --- ✨ Auto-Reaction with Caption Mood ---
 def get_mood_emoji(text):
     text = str(text).lower()
     
@@ -436,15 +456,11 @@ def get_mood_emoji(text):
     elif any(word in text for word in ['angry', 'mad', 'wtf', 'गुस्सा', 'hate']):
         return "😡"
     else:
-        # Default Positive Reaction 
-        return "👍"
+        return "👍" # Default Positive Reaction
 
-# Filter update kiya gaya (Taaki Photo/Media bina text wale pe bhi kaam kare)
 @app.on_message(filters.channel | filters.group)
 async def auto_reaction_handler(client, message):
-    # Text ya Caption nikaalein (Agar nahi hai toh blank manega)
     text_content = message.text or message.caption or ""
-    
     reaction_emoji = get_mood_emoji(text_content)
     
     try:
@@ -458,6 +474,6 @@ async def auto_reaction_handler(client, message):
 
 if __name__ == "__main__":
     threading.Thread(target=run_server, daemon=True).start()
-    print("Bot is ready Worldwide! (With Reactions & Fsub Mode)")
+    print("Bot is ready Worldwide! (With Private Fsub & Reactions)")
     loop.create_task(schedule_tracker())
     app.run()
