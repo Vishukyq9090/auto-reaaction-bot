@@ -21,7 +21,7 @@ web_app = Flask(__name__)
 
 @web_app.route('/')
 def home():
-    return "Bot is Running with Owner Panel & Reactions!"
+    return "Ultimate Auto-Accept Bot is Running Successfully!"
 
 def run_server():
     port = int(os.environ.get("PORT", 8080))
@@ -32,7 +32,7 @@ API_ID = int(os.environ.get("API_ID", 12345))
 API_HASH = os.environ.get("API_HASH", "")
 BOT_TOKEN = os.environ.get("BOT_TOKEN", "")
 MONGO_URI = os.environ.get("MONGO_URI", "")
-ADMIN_ID = int(os.environ.get("ADMIN_ID", 0))  # ⚠️ आपका Telegram User ID यहाँ होना चाहिए
+ADMIN_ID = int(os.environ.get("ADMIN_ID", 0))
 
 app = Client("AutoAcceptBot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
 
@@ -45,11 +45,30 @@ bot_users_col = db["bot_users"]
 global_welcome_col = db["global_welcome"]
 global_settings_col = db["global_settings"]
 
-# --- 🌐 3. Multi-Language Dictionary ---
+# --- 🌐 3. Multi-Language Dictionary (Top 20 Worldwide) ---
 TEXTS = {
-    "en": {"start": "👋 **Hello! I am a Smart Auto-Accept Bot.**\n\n**🤖 What I do:**\nI automatically accept join requests.\n\n**📝 How to use:**\n1️⃣ Add me as Admin.\n2️⃣ Type `/admin` in your channel.", "admin_panel": "🎛 **Channel Settings Panel**\n*(Deletes in 15s)*", "promo": "🎉 **Congratulations!**\nYou've been approved in **{chat}**.\n\n🚀 Join our official community 👇", "btn_add": "➕ Add Bot to Channel", "btn_refer": "🎁 Refer & Earn", "btn_lang": "🌐 Language", "not_admin": "❌ You are not an admin!", "accepting": "⏳ Accepting...", "done": "✅ **Completed!** ({count} accepted)", "lang_set": "✅ Language set to English!"},
-    "hi": {"start": "👋 **नमस्ते! मैं एक Auto-Accept Bot हूँ।**\n\n**🤖 मैं क्या करता हूँ:**\nमैं जॉइन रिक्वेस्ट अपने आप एक्सेप्ट करता हूँ।\n\n**📝 इस्तेमाल:**\n1️⃣ मुझे चैनल में Admin बनाएं।\n2️⃣ `/admin` भेजें।", "admin_panel": "🎛 **Channel Settings पैनल**\n*(15s में डिलीट)*", "promo": "🎉 **बधाई हो!**\nआपको **{chat}** में अप्रूव कर दिया गया है।\n\n🚀 हमारी कम्युनिटी जॉइन करें 👇", "btn_add": "➕ चैनल में जोड़ें", "btn_refer": "🎁 रेफर करें और कमाएं", "btn_lang": "🌐 भाषा (Language)", "not_admin": "❌ आप एडमिन नहीं हैं!", "accepting": "⏳ एक्सेप्ट कर रहा हूँ...", "done": "✅ **पूरा हुआ!** ({count} एक्सेप्ट किए)", "lang_set": "✅ भाषा हिंदी सेट हो गई!"}
+    "en": {"start": "👋 **Hello! I am a Smart Auto-Accept Bot.**\n\n**🤖 What I do:**\nI automatically accept join requests.\n\n**📝 How to use:**\n1️⃣ Add me as Admin.\n2️⃣ Type `/admin` in your channel.", "admin_panel": "🎛 **Admin Panel**\n*(Deletes in 15s)*", "promo": "🎉 **Congratulations!**\nYou've been approved in **{chat}**.\n\n🚀 Join our official community 👇", "btn_add": "➕ Add Bot to Channel", "btn_refer": "🎁 Refer & Earn", "btn_lang": "🌐 Language", "not_admin": "❌ You are not an admin!", "accepting": "⏳ Accepting...", "done": "✅ **Completed!** ({count} accepted)", "lang_set": "✅ Language set to English!"},
+    "hi": {"start": "👋 **नमस्ते! मैं एक Auto-Accept Bot हूँ।**\n\n**🤖 मैं क्या करता हूँ:**\nमैं जॉइन रिक्वेस्ट अपने आप एक्सेप्ट करता हूँ।\n\n**📝 इस्तेमाल:**\n1️⃣ मुझे चैनल में Admin बनाएं।\n2️⃣ `/admin` भेजें।", "admin_panel": "🎛 **एडमिन पैनल**\n*(15s में डिलीट)*", "promo": "🎉 **बधाई हो!**\nआपको **{chat}** में अप्रूव कर दिया गया है।\n\n🚀 हमारी कम्युनिटी जॉइन करें 👇", "btn_add": "➕ चैनल में जोड़ें", "btn_refer": "🎁 रेफर करें और कमाएं", "btn_lang": "🌐 भाषा (Language)", "not_admin": "❌ आप एडमिन नहीं हैं!", "accepting": "⏳ एक्सेप्ट कर रहा हूँ...", "done": "✅ **पूरा हुआ!** ({count} एक्सेप्ट किए)", "lang_set": "✅ भाषा हिंदी सेट हो गई!"},
+    "es": {"start": "👋 **¡Hola! Soy un Bot de Auto-Aceptación.**\n\n**🤖 Qué hago:**\nAcepto solicitudes automáticamente.\n\n**📝 Cómo usar:**\n1️⃣ Añádeme como Admin.\n2️⃣ Escribe `/admin`.", "admin_panel": "🎛 **Panel de Administración**", "promo": "🎉 **¡Felicidades!**\nAprobado en **{chat}**.\n\n🚀 Únete a nuestra comunidad 👇", "btn_add": "➕ Añadir al Canal", "btn_refer": "🎁 Referir y Ganar", "btn_lang": "🌐 Idioma", "not_admin": "❌ ¡No eres administrador!", "accepting": "⏳ Aceptando...", "done": "✅ **¡Completado!** ({count} aceptados)", "lang_set": "✅ ¡Idioma Español configurado!"},
+    "fr": {"start": "👋 **Bonjour! Je suis un Bot d'Auto-Acceptation.**\n\n**🤖 Ce que je fais:**\nJ'accepte automatiquement les demandes.\n\n**📝 Utilisation:**\n1️⃣ Ajoutez-moi comme Admin.\n2️⃣ Tapez `/admin`.", "admin_panel": "🎛 **Panneau d'administration**", "promo": "🎉 **Félicitations!**\nApprouvé dans **{chat}**.\n\n🚀 Rejoignez notre communauté 👇", "btn_add": "➕ Ajouter au Canal", "btn_refer": "🎁 Parrainer et Gagner", "btn_lang": "🌐 Langue", "not_admin": "❌ Vous n'êtes pas administrateur!", "accepting": "⏳ Acceptation...", "done": "✅ **Terminé!** ({count} acceptés)", "lang_set": "✅ Langue Française configurée!"},
+    "ar": {"start": "👋 **مرحباً! أنا روبوت القبول التلقائي.**\n\n**🤖 ماذا أفعل:**\nأقبل الطلبات تلقائياً.\n\n**📝 الاستخدام:**\n1️⃣ أضفني كمسؤول.\n2️⃣ اكتب `/admin`.", "admin_panel": "🎛 **لوحة الإدارة**", "promo": "🎉 **تهانينا!**\nتمت الموافقة في **{chat}**.\n\n🚀 انضم لمجتمعنا 👇", "btn_add": "➕ إضافة للقناة", "btn_refer": "🎁 أشر واربح", "btn_lang": "🌐 اللغة", "not_admin": "❌ أنت لست مسؤولاً!", "accepting": "⏳ جاري القبول...", "done": "✅ **مكتمل!** ({count} مقبول)", "lang_set": "✅ تم تعيين اللغة العربية!"},
+    "ru": {"start": "👋 **Привет! Я Бот Авто-Принятия.**\n\n**🤖 Что я делаю:**\nАвтоматически принимаю заявки.\n\n**📝 Использование:**\n1️⃣ Добавьте как Админа.\n2️⃣ Введите `/admin`.", "admin_panel": "🎛 **Панель Админа**", "promo": "🎉 **Поздравляем!**\nВы приняты в **{chat}**.\n\n🚀 Присоединяйтесь к нам 👇", "btn_add": "➕ Добавить в Канал", "btn_refer": "🎁 Пригласить", "btn_lang": "🌐 Язык", "not_admin": "❌ Вы не админ!", "accepting": "⏳ Принятие...", "done": "✅ **Готово!** ({count} принято)", "lang_set": "✅ Русский язык установлен!"},
+    "pt": {"start": "👋 **Olá! Sou um Bot de Auto-Aceitação.**\n\n**🤖 O que eu faço:**\nAceito solicitações automaticamente.\n\n**📝 Como usar:**\n1️⃣ Me adicione como Admin.\n2️⃣ Digite `/admin`.", "admin_panel": "🎛 **Painel de Admin**", "promo": "🎉 **Parabéns!**\nAprovado em **{chat}**.\n\n🚀 Junte-se a nós 👇", "btn_add": "➕ Adicionar ao Canal", "btn_refer": "🎁 Indicar e Ganhar", "btn_lang": "🌐 Idioma", "not_admin": "❌ Você não é administrador!", "accepting": "⏳ Aceitando...", "done": "✅ **Concluído!** ({count} aceitos)", "lang_set": "✅ Idioma Português definido!"},
+    "zh": {"start": "👋 **你好！我是自动通过机器人。**\n\n**🤖 我的功能:**\n自动通过加入请求。\n\n**📝 使用方法:**\n1️⃣ 将我设为管理员。\n2️⃣ 发送 `/admin`。", "admin_panel": "🎛 **管理面板**", "promo": "🎉 **恭喜！**\n您已加入 **{chat}**。\n\n🚀 加入我们的社区 👇", "btn_add": "➕ 添加到频道", "btn_refer": "🎁 推荐并赚取", "btn_lang": "🌐 语言", "not_admin": "❌ 您不是管理员！", "accepting": "⏳ 正在通过...", "done": "✅ **完成！** (已通过 {count})", "lang_set": "✅ 已设置为中文！"},
+    "de": {"start": "👋 **Hallo! Ich bin ein Auto-Accept-Bot.**\n\n**🤖 Was ich tue:**\nAkzeptiert Anfragen automatisch.\n\n**📝 Nutzung:**\n1️⃣ Als Admin hinzufügen.\n2️⃣ `/admin` tippen.", "admin_panel": "🎛 **Admin-Panel**", "promo": "🎉 **Glückwunsch!**\nGenehmigt in **{chat}**.\n\n🚀 Tritt uns bei 👇", "btn_add": "➕ Zum Kanal hinzufügen", "btn_refer": "🎁 Empfehlen", "btn_lang": "🌐 Sprache", "not_admin": "❌ Du bist kein Admin!", "accepting": "⏳ Akzeptiere...", "done": "✅ **Fertig!** ({count} akzeptiert)", "lang_set": "✅ Deutsch als Sprache eingestellt!"},
+    "ja": {"start": "👋 **こんにちは！自動承認ボットです。**\n\n**🤖 機能:**\nリクエストを自動承認します。\n\n**📝 使い方:**\n1️⃣ 管理者として追加。\n2️⃣ `/admin` と入力。", "admin_panel": "🎛 **管理パネル**", "promo": "🎉 **おめでとう！**\n**{chat}** に承認されました。\n\n🚀 コミュニティに参加 👇", "btn_add": "➕ チャンネルに追加", "btn_refer": "🎁 友達紹介", "btn_lang": "🌐 言語", "not_admin": "❌ 管理者ではありません！", "accepting": "⏳ 承認中...", "done": "✅ **完了！** ({count} 承認)", "lang_set": "✅ 日本語に設定しました！"},
+    "bn": {"start": "👋 **হ্যালো! আমি অটো-অ্যাক্সেপ্ট বট।**\n\n**🤖 আমি যা করি:**\nস্বয়ংক্রিয়ভাবে রিকোয়েস্ট অ্যাক্সেপ্ট করি।\n\n**📝 ব্যবহার:**\n1️⃣ অ্যাডমিন হিসেবে যুক্ত করুন।\n2️⃣ `/admin` টাইপ করুন।", "admin_panel": "🎛 **অ্যাডমিন প্যানেল**", "promo": "🎉 **অভিনন্দন!**\n**{chat}** এ অনুমোদিত।\n\n🚀 আমাদের সাথে যুক্ত হন 👇", "btn_add": "➕ চ্যানেলে যুক্ত করুন", "btn_refer": "🎁 রেফার করুন", "btn_lang": "🌐 ভাষা", "not_admin": "❌ আপনি অ্যাডমিন নন!", "accepting": "⏳ অ্যাক্সেপ্ট করা হচ্ছে...", "done": "✅ **সম্পূর্ণ!** ({count} অ্যাক্সেপ্ট)", "lang_set": "✅ ভাষা বাংলা সেট করা হয়েছে!"},
+    "ur": {"start": "👋 **ہیلو! میں آٹو ایکسیپٹ بوٹ ہوں۔**\n\n**🤖 میرا کام:**\nخودکار طور پر درخواستیں منظور کرنا۔\n\n**📝 استعمال:**\n1️⃣ مجھے ایڈمن بنائیں۔\n2️⃣ `/admin` لکھیں۔", "admin_panel": "🎛 **ایڈمن پینل**", "promo": "🎉 **مبارک ہو!**\n**{chat}** میں منظوری مل گئی۔\n\n🚀 ہماری کمیونٹی جوائن کریں 👇", "btn_add": "➕ چینل میں شامل کریں", "btn_refer": "🎁 ریفر کریں", "btn_lang": "🌐 زبان", "not_admin": "❌ آپ ایڈمن نہیں ہیں!", "accepting": "⏳ منظور ہو رہا ہے...", "done": "✅ **مکمل!** ({count} منظور)", "lang_set": "✅ زبان اردو سیٹ ہو گئی!"},
+    "id": {"start": "👋 **Halo! Saya Bot Auto-Accept.**\n\n**🤖 Tugas saya:**\nMenerima permintaan secara otomatis.\n\n**📝 Cara pakai:**\n1️⃣ Jadikan Admin.\n2️⃣ Ketik `/admin`.", "admin_panel": "🎛 **Panel Admin**", "promo": "🎉 **Selamat!**\nDisetujui di **{chat}**.\n\n🚀 Bergabunglah bersama kami 👇", "btn_add": "➕ Tambah ke Channel", "btn_refer": "🎁 Referensikan", "btn_lang": "🌐 Bahasa", "not_admin": "❌ Anda bukan admin!", "accepting": "⏳ Menerima...", "done": "✅ **Selesai!** ({count} diterima)", "lang_set": "✅ Bahasa Indonesia diatur!"},
+    "tr": {"start": "👋 **Merhaba! Otomatik Kabul Botuyum.**\n\n**🤖 Ne yaparım:**\nİstekleri otomatik kabul ederim.\n\n**📝 Kullanım:**\n1️⃣ Yönetici yapın.\n2️⃣ `/admin` yazın.", "admin_panel": "🎛 **Yönetici Paneli**", "promo": "🎉 **Tebrikler!**\n**{chat}** kanalında onaylandınız.\n\n🚀 Topluluğumuza katılın 👇", "btn_add": "➕ Kanala Ekle", "btn_refer": "🎁 Tavsiye Et", "btn_lang": "🌐 Dil", "not_admin": "❌ Yönetici değilsiniz!", "accepting": "⏳ Kabul ediliyor...", "done": "✅ **Tamamlandı!** ({count} kabul)", "lang_set": "✅ Dil Türkçe ayarlandı!"},
+    "ko": {"start": "👋 **안녕하세요! 자동 승인 봇입니다.**\n\n**🤖 기능:**\n가입 요청 자동 승인.\n\n**📝 사용법:**\n1️⃣ 관리자로 추가.\n2️⃣ `/admin` 입력.", "admin_panel": "🎛 **관리자 패널**", "promo": "🎉 **축하합니다!**\n**{chat}** 에 승인되었습니다.\n\n🚀 커뮤니티 참여 👇", "btn_add": "➕ 채널에 추가", "btn_refer": "🎁 친구 초대", "btn_lang": "🌐 언어", "not_admin": "❌ 관리자가 아닙니다!", "accepting": "⏳ 승인 중...", "done": "✅ **완료!** ({count} 승인)", "lang_set": "✅ 한국어로 설정되었습니다!"},
+    "vi": {"start": "👋 **Xin chào! Tôi là Bot Tự Động Duyệt.**\n\n**🤖 Chức năng:**\nTự động duyệt yêu cầu.\n\n**📝 Cách dùng:**\n1️⃣ Thêm làm Quản trị viên.\n2️⃣ Gõ `/admin`.", "admin_panel": "🎛 **Bảng điều khiển**", "promo": "🎉 **Chúc mừng!**\nĐược duyệt tại **{chat}**.\n\n🚀 Tham gia cộng đồng 👇", "btn_add": "➕ Thêm vào Kênh", "btn_refer": "🎁 Giới thiệu", "btn_lang": "🌐 Ngôn ngữ", "not_admin": "❌ Bạn không phải là admin!", "accepting": "⏳ Đang duyệt...", "done": "✅ **Hoàn tất!** ({count} đã duyệt)", "lang_set": "✅ Đã cài đặt Tiếng Việt!"},
+    "it": {"start": "👋 **Ciao! Sono un Bot di Auto-Accettazione.**\n\n**🤖 Cosa faccio:**\nAccetto automaticamente le richieste.\n\n**📝 Uso:**\n1️⃣ Aggiungimi come Admin.\n2️⃣ Digita `/admin`.", "admin_panel": "🎛 **Pannello Admin**", "promo": "🎉 **Congratulazioni!**\nApprovato in **{chat}**.\n\n🚀 Unisciti alla community 👇", "btn_add": "➕ Aggiungi al Canale", "btn_refer": "🎁 Invita e Guadagna", "btn_lang": "🌐 Lingua", "not_admin": "❌ Non sei admin!", "accepting": "⏳ Accettazione...", "done": "✅ **Fatto!** ({count} accettati)", "lang_set": "✅ Lingua Italiana impostata!"},
+    "th": {"start": "👋 **สวัสดี! ฉันคือบอทอนุมัติอัตโนมัติ**\n\n**🤖 หน้าที่:**\nอนุมัติคำขออัตโนมัติ\n\n**📝 วิธีใช้:**\n1️⃣ เพิ่มเป็นผู้ดูแล\n2️⃣ พิมพ์ `/admin`", "admin_panel": "🎛 **แผงควบคุม**", "promo": "🎉 **ยินดีด้วย!**\nอนุมัติใน **{chat}**\n\n🚀 เข้าร่วมกับเรา 👇", "btn_add": "➕ เพิ่มลงในช่อง", "btn_refer": "🎁 แนะนำเพื่อน", "btn_lang": "🌐 ภาษา", "not_admin": "❌ คุณไม่ใช่แอดมิน!", "accepting": "⏳ กำลังอนุมัติ...", "done": "✅ **เสร็จสิ้น!** (อนุมัติ {count})", "lang_set": "✅ ตั้งค่าภาษาไทยแล้ว!"},
+    "fa": {"start": "👋 **سلام! من ربات تایید خودکار هستم.**\n\n**🤖 کار من:**\nتایید خودکار درخواست‌ها.\n\n**📝 نحوه استفاده:**\n1️⃣ ادمینم کنید.\n2️⃣ بنویسید `/admin`.", "admin_panel": "🎛 **پنل مدیریت**", "promo": "🎉 **تبریک!**\nدر **{chat}** تایید شدید.\n\n🚀 به ما بپیوندید 👇", "btn_add": "➕ افزودن به کانال", "btn_refer": "🎁 معرفی و کسب درآمد", "btn_lang": "🌐 زبان", "not_admin": "❌ شما ادمین نیستید!", "accepting": "⏳ در حال تایید...", "done": "✅ **انجام شد!** ({count} تایید)", "lang_set": "✅ زبان فارسی تنظیم شد!"},
+    "sw": {"start": "👋 **Hujambo! Mimi ni Bot ya Kukubali Kiotomatiki.**\n\n**🤖 Kazi yangu:**\nKukubali maombi kiotomatiki.\n\n**📝 Matumizi:**\n1️⃣ Niweke kama Admin.\n2️⃣ Andika `/admin`.", "admin_panel": "🎛 **Jopo la Admin**", "promo": "🎉 **Hongera!**\nUmekubaliwa katika **{chat}**.\n\n🚀 Jiunge na jamii yetu 👇", "btn_add": "➕ Ongeza kwenye Kituo", "btn_refer": "🎁 Alika Marafiki", "btn_lang": "🌐 Lugha", "not_admin": "❌ Wewe sio admin!", "accepting": "⏳ Inakubali...", "done": "✅ **Imekamilika!** ({count} zimekubaliwa)", "lang_set": "✅ Lugha ya Swahili imewekwa!"}
 }
+
 
 def get_user_lang(user_id):
     user_data = bot_users_col.find_one({"user_id": user_id})
@@ -120,18 +139,18 @@ async def owner_panel(client, message):
         
     users_count = bot_users_col.count_documents({})
     fsub_data = global_settings_col.find_one({"id": "fsub"})
-    fsub_status = "✅ ON" if fsub_data and fsub_data.get("channel") else "❌ OFF"
+    fsub_channels = fsub_data.get("channels", []) if fsub_data else []
     
     text = (
         "👑 **Owner Admin Panel**\n\n"
         f"👥 **Total Users:** {users_count}\n"
-        f"🔔 **FSub Status:** {fsub_status}\n\n"
+        f"🔔 **FSub Channels:** {len(fsub_channels)}\n\n"
         "📢 **Broadcast करने का तरीका:**\n"
         "किसी भी मैसेज, फोटो या वीडियो का Reply (रिप्लाई) करते हुए `/broadcast` लिखें।"
     )
     
     kb = InlineKeyboardMarkup([
-        [InlineKeyboardButton("❌ Remove/Turn Off FSub", callback_data="owner_rm_fsub")]
+        [InlineKeyboardButton("❌ Remove/Clear ALL FSub", callback_data="owner_rm_fsub")]
     ])
     await message.reply(text, reply_markup=kb)
 
@@ -153,13 +172,13 @@ async def broadcast_msg(client, message):
         try:
             await message.reply_to_message.copy(u["user_id"])
             success += 1
-            await asyncio.sleep(0.1)  # Anti-Spam protection
+            await asyncio.sleep(0.1)  
         except:
             failed += 1
             
     await status.edit_text(f"✅ **Broadcast Completed!**\n\n🟢 Success: {success}\n🔴 Failed: {failed}")
 
-# --- ✨ 3. MAGIC FSUB (Auto Configure on making Admin) ---
+# --- ✨ 3. MAGIC FSUB (Supports Multiple Channels automatically) ---
 @app.on_chat_member_updated(filters.channel | filters.group)
 async def bot_added_as_admin(client, update):
     try:
@@ -169,58 +188,60 @@ async def bot_added_as_admin(client, update):
             if "administrator" in status or "owner" in status:
                 chat_id = update.chat.id
                 
-                # चैनल में स्वागत मैसेज
-                await client.send_message(
-                    chat_id,
-                    "✅ **Bot Successfully Added as Admin!**\n🟢 Auto-Accept: ON\n🟢 Auto-Reactions: ON"
-                )
+                await client.send_message(chat_id, "✅ **Bot Successfully Added as Admin!**\n🟢 Auto-Accept: ON")
 
-                # 👑 MAGIC TRICK: अगर बॉट को Owner (ADMIN_ID) ने एडमिन बनाया है, तो FSub ऑटो-सेट कर दो!
+                # 👑 MAGIC TRICK MULTIPLE FSUB
                 if update.from_user and update.from_user.id == ADMIN_ID:
-                    invite_link = update.chat.invite_link
-                    if not invite_link:
-                        invite_link = await client.export_chat_invite_link(chat_id)
+                    fsub_data = global_settings_col.find_one({"id": "fsub"})
+                    channels = fsub_data.get("channels", []) if fsub_data else []
+                    
+                    if not any(c["chat_id"] == chat_id for c in channels):
+                        invite_link = update.chat.invite_link
+                        if not invite_link:
+                            invite_link = await client.export_chat_invite_link(chat_id)
+                            
+                        channels.append({"chat_id": chat_id, "link": invite_link})
+                        global_settings_col.update_one({"id": "fsub"}, {"$set": {"channels": channels}}, upsert=True)
                         
-                    global_settings_col.update_one(
-                        {"id": "fsub"}, 
-                        {"$set": {"channel": chat_id, "link": invite_link}}, 
-                        upsert=True
-                    )
-                    # Owner को DM में बता दो
-                    await client.send_message(
-                        ADMIN_ID,
-                        f"🎉 **Magic FSub Configured!**\nआपने बॉट को `{update.chat.title}` में एडमिन बनाया, इसलिए बॉट ने इसे अपना मुख्य Force Subscribe चैनल बना लिया है!"
-                    )
+                        await client.send_message(
+                            ADMIN_ID,
+                            f"🎉 **Magic FSub Configured!**\nचैनल `{update.chat.title}` को Force Subscribe लिस्ट में जोड़ दिया गया है!\n*(Total FSub Channels: {len(channels)})*"
+                        )
     except Exception:
         pass
 
 
-# --- ✨ Start Command (With Error-Free FSub Logic) ---
+# --- ✨ Start Command (Registration, Multi-Fsub, Top20 Lang) ---
 @app.on_message(filters.command("start") & filters.private)
 async def start_command(client, message):
     user_id = message.from_user.id
+    bot_info = await client.get_me()
     
-    # 🔒 Error-Free Force Subscribe Check
+    # 🔒 Multi-Channel Force Subscribe Check
     fsub_data = global_settings_col.find_one({"id": "fsub"})
-    if fsub_data and fsub_data.get("channel"):
-        fsub_channel = fsub_data["channel"]
-        fsub_link = fsub_data.get("link", "https://t.me/")
+    fsub_channels = fsub_data.get("channels", []) if fsub_data else []
+    not_joined = []
+    
+    for fsub in fsub_channels:
         try:
-            member = await client.get_chat_member(fsub_channel, user_id)
+            member = await client.get_chat_member(fsub["chat_id"], user_id)
             if member.status in [ChatMemberStatus.BANNED, ChatMemberStatus.RESTRICTED]:
-                return # Banned users ignored
+                return 
         except UserNotParticipant:
-            bot_info = await client.get_me()
-            fsub_kb = InlineKeyboardMarkup([
-                [InlineKeyboardButton("🔔 Subscribe Now 🔔", url=fsub_link)],
-                [InlineKeyboardButton("✅ I Have Subscribed", url=f"https://t.me/{bot_info.username}?start=start")]
-            ])
-            await message.reply("🚨 **कृपया बॉट का उपयोग करने से पहले हमारे चैनल से जुड़ें!**", reply_markup=fsub_kb)
-            return
+            not_joined.append(fsub)
         except Exception:
-            # अगर चैनल डिलीट हो गया या बॉट एडमिन से हट गया, तो एरर नहीं देगा और यूजर्स को रोकेगा नहीं
             pass 
 
+    if not_joined:
+        buttons = []
+        for i, fsub in enumerate(not_joined):
+            buttons.append([InlineKeyboardButton(f"🔔 Subscribe Channel {i+1}", url=fsub["link"])])
+            
+        buttons.append([InlineKeyboardButton("✅ I Have Subscribed", url=f"https://t.me/{bot_info.username}?start=start")])
+        await message.reply("🚨 **कृपया बॉट का उपयोग करने से पहले हमारे सभी चैनल सब्सक्राइब करें!**", reply_markup=InlineKeyboardMarkup(buttons))
+        return
+
+    # User Registration & Refer System
     text = message.text.split()
     user_data = bot_users_col.find_one({"user_id": user_id})
 
@@ -248,8 +269,8 @@ async def start_command(client, message):
                 pass
 
     lang = get_user_lang(user_id)
-    bot_info = await client.get_me()
-    add_link = f"https://t.me/{bot_info.username}?startchannel=true&admin=invite_users+delete_messages"
+    # Single click make admin link with full permissions
+    add_link = f"https://t.me/{bot_info.username}?startchannel=true&admin=invite_users+delete_messages+manage_chat+edit_messages+post_messages"
 
     keyboard = InlineKeyboardMarkup([
         [InlineKeyboardButton(TEXTS.get(lang, TEXTS["en"])["btn_add"], url=add_link)],
@@ -305,30 +326,41 @@ async def callback_handler(client, callback_query):
         msg = callback_query.message
         data = callback_query.data
         lang = get_user_lang(user_id)
+        bot_info = await client.get_me()
         
         # 👑 Owner Button
         if data == "owner_rm_fsub":
             if user_id != ADMIN_ID:
                 return
-            global_settings_col.update_one({"id": "fsub"}, {"$set": {"channel": None, "link": None}}, upsert=True)
-            await callback_query.answer("❌ Force Subscribe हटा दिया गया है!", show_alert=True)
+            global_settings_col.update_one({"id": "fsub"}, {"$set": {"channels": []}}, upsert=True)
+            await callback_query.answer("❌ सभी Force Subscribe चैनल्स हटा दिए गए हैं!", show_alert=True)
             await msg.delete()
             return
 
+        # 🌐 Top 20 Languages Menu
         if data == "btn_change_lang":
             lang_kb = InlineKeyboardMarkup([
                 [InlineKeyboardButton("🇬🇧 English", callback_data="setlang_en"), InlineKeyboardButton("🇮🇳 हिन्दी", callback_data="setlang_hi")],
+                [InlineKeyboardButton("🇪🇸 Español", callback_data="setlang_es"), InlineKeyboardButton("🇫🇷 Français", callback_data="setlang_fr")],
+                [InlineKeyboardButton("🇸🇦 العربية", callback_data="setlang_ar"), InlineKeyboardButton("🇷🇺 Русский", callback_data="setlang_ru")],
+                [InlineKeyboardButton("🇵🇹 Português", callback_data="setlang_pt"), InlineKeyboardButton("🇨🇳 中文", callback_data="setlang_zh")],
+                [InlineKeyboardButton("🇩🇪 Deutsch", callback_data="setlang_de"), InlineKeyboardButton("🇯🇵 日本語", callback_data="setlang_ja")],
+                [InlineKeyboardButton("🇧🇩 বাংলা", callback_data="setlang_bn"), InlineKeyboardButton("🇵🇰 اردو", callback_data="setlang_ur")],
+                [InlineKeyboardButton("🇮🇩 Bahasa", callback_data="setlang_id"), InlineKeyboardButton("🇹🇷 Türkçe", callback_data="setlang_tr")],
+                [InlineKeyboardButton("🇰🇷 한국어", callback_data="setlang_ko"), InlineKeyboardButton("🇻🇳 Tiếng Việt", callback_data="setlang_vi")],
+                [InlineKeyboardButton("🇮🇹 Italiano", callback_data="setlang_it"), InlineKeyboardButton("🇹🇭 ไทย", callback_data="setlang_th")],
+                [InlineKeyboardButton("🇮🇷 فارسی", callback_data="setlang_fa"), InlineKeyboardButton("🇰🇪 Swahili", callback_data="setlang_sw")],
                 [InlineKeyboardButton("🔙 Back", callback_data="btn_start_menu")]
             ])
-            await msg.edit_text("**Please select your language:**", reply_markup=lang_kb)
+            await msg.edit_text("**Please select your language / कृपया अपनी भाषा चुनें:**", reply_markup=lang_kb)
             return
 
         elif data.startswith("setlang_"):
             new_lang = data.split("_")[1]
             bot_users_col.update_one({"user_id": user_id}, {"$set": {"lang": new_lang}}, upsert=True)
             await callback_query.answer(TEXTS.get(new_lang, TEXTS["en"])["lang_set"], show_alert=True)
-            bot_info = await client.get_me()
-            add_link = f"https://t.me/{bot_info.username}?startchannel=true&admin=invite_users+delete_messages"
+            
+            add_link = f"https://t.me/{bot_info.username}?startchannel=true&admin=invite_users+delete_messages+manage_chat+edit_messages+post_messages"
             keyboard = InlineKeyboardMarkup([
                 [InlineKeyboardButton(TEXTS.get(new_lang, TEXTS["en"])["btn_add"], url=add_link)],
                 [InlineKeyboardButton(TEXTS.get(new_lang, TEXTS["en"])["btn_refer"], callback_data="btn_refer"), 
@@ -337,8 +369,8 @@ async def callback_handler(client, callback_query):
             await msg.edit_text(TEXTS.get(new_lang, TEXTS["en"])["start"], reply_markup=keyboard)
             return
 
+        # 🎁 Refer & Earn
         if data == "btn_refer":
-            bot_info = await client.get_me()
             user_data = bot_users_col.find_one({"user_id": user_id})
             balance = user_data.get("balance", 0) if user_data else 0
             ref_count = user_data.get("referral_count", 0) if user_data else 0
@@ -369,8 +401,7 @@ async def callback_handler(client, callback_query):
             return
 
         elif data == "btn_start_menu":
-            bot_info = await client.get_me()
-            add_link = f"https://t.me/{bot_info.username}?startchannel=true&admin=invite_users+delete_messages"
+            add_link = f"https://t.me/{bot_info.username}?startchannel=true&admin=invite_users+delete_messages+manage_chat+edit_messages+post_messages"
             keyboard = InlineKeyboardMarkup([
                 [InlineKeyboardButton(TEXTS.get(lang, TEXTS["en"])["btn_add"], url=add_link)],
                 [InlineKeyboardButton(TEXTS.get(lang, TEXTS["en"])["btn_refer"], callback_data="btn_refer"), 
@@ -379,6 +410,7 @@ async def callback_handler(client, callback_query):
             await msg.edit_text(TEXTS.get(lang, TEXTS["en"])["start"], reply_markup=keyboard)
             return
 
+        # Group/Channel Admin Controls
         if not await is_user_admin(client, chat_id, user_id):
             await callback_query.answer(TEXTS.get(lang, TEXTS["en"])["not_admin"], show_alert=True)
             return
@@ -487,7 +519,7 @@ async def schedule_tracker():
         await asyncio.sleep(30)
 
 
-# --- ✨ Auto-Reaction with Caption Mood (Perfect Fix) ---
+# --- ✨ Auto-Reaction (REPLY TEXT METHOD - NO CRASH) ---
 def get_mood_emoji(text):
     text = str(text).lower()
     if any(word in text for word in ['sad', 'bad', 'crying', 'दुखी', 'खराब', 'sorry']):
@@ -497,12 +529,10 @@ def get_mood_emoji(text):
     elif any(word in text for word in ['angry', 'mad', 'wtf', 'गुस्सा', 'hate']):
         return "😡"
     else:
-        return "👍" # Default Positive Reaction
+        return "👍"
 
-# ~filters.service लगाने से बॉट "User joined channel" जैसे मैसेज पर रिएक्ट नहीं करेगा (Error बच जाएगा)
 @app.on_message((filters.channel | filters.group) & ~filters.service)
 async def auto_reaction_handler(client, message):
-    # बॉट खुद के मैसेज पर रिएक्ट नहीं करेगा (ताकि लूप न बने)
     if message.from_user and message.from_user.is_self:
         return
         
@@ -510,17 +540,13 @@ async def auto_reaction_handler(client, message):
     reaction_emoji = get_mood_emoji(text_content)
     
     try:
-        await client.send_reaction(
-            chat_id=message.chat.id,
-            message_id=message.id,
-            emoji=reaction_emoji
-        )
-    except Exception as e:
-        # अगर चैनल में Reactions बंद हैं तो बॉट चुपचाप इग्नोर कर देगा
+        # Telegram API की पाबंदी से बचने के लिए, बॉट अब रिएक्शन की जगह रिप्लाई करेगा।
+        await message.reply_text(reaction_emoji)
+    except Exception:
         pass
 
 if __name__ == "__main__":
     threading.Thread(target=run_server, daemon=True).start()
-    print("Bot is ready Worldwide! (With Magic Fsub, Owner Panel & Reactions)")
+    print("Bot is ready Worldwide! (With Multiple Fsub, Top 20 Languages & Zero Error Reactions)")
     loop.create_task(schedule_tracker())
     app.run()
