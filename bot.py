@@ -452,9 +452,9 @@ async def schedule_tracker():
                     done_text = TEXTS[admin_lang]["done"].format(count=success_count)
                     done_msg = await app.send_message(chat_id, done_text)
                     asyncio.create_task(delete_after(done_msg, 5))
-        except Exception:
-            pass
-        await asyncio.sleep(30)
+        except Exception as e:
+        # यह लाइन Render के Logs में असली कारण बता देगी
+        print(f"Reaction Error: {e}")
 
 if __name__ == "__main__":
     threading.Thread(target=run_server, daemon=True).start()
