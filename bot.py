@@ -44,70 +44,61 @@ db = db_client["ProReactionBot_DB"]
 bot_users_col = db["bot_users"]
 global_settings_col = db["global_settings"]
 
-# --- 🚀 3. Error-Free Direct Telegram API Reaction ---
-def safe_react(chat_id, message_id, emoji):
+# --- 🚀 3. HYBRID REACTION SYSTEM (React or Reply) ---
+async def safe_react_or_reply(message, emoji):
     url = f"https://api.telegram.org/bot{BOT_TOKEN}/setMessageReaction"
     data = {
-        "chat_id": chat_id,
-        "message_id": message_id,
+        "chat_id": message.chat.id,
+        "message_id": message.id,
         "reaction": [{"type": "emoji", "emoji": emoji}]
     }
-    try:
-        req = urllib.request.Request(url, data=json.dumps(data).encode('utf-8'), headers={'Content-Type': 'application/json'})
-        urllib.request.urlopen(req, timeout=5)
-    except Exception as e:
-        print(f"Reaction API Error: {e}")
+    
+    # Official API से रिएक्शन चिपकाने की कोशिश
+    def make_request():
+        try:
+            req = urllib.request.Request(url, data=json.dumps(data).encode('utf-8'), headers={'Content-Type': 'application/json'})
+            with urllib.request.urlopen(req, timeout=5) as res:
+                return res.getcode() == 200
+        except Exception:
+            return False
+
+    success = await loop.run_in_executor(None, make_request)
+    
+    # अगर Telegram ने रिएक्शन ब्लॉक कर दिया, तो बैकअप के तौर पर Reply करेगा
+    if not success:
+        try:
+            await message.reply_text(emoji)
+        except Exception:
+            pass
 
 # --- 🤖 4. AI Mood Analyzer (50+ Emojis Supported) ---
 def get_mood_emoji(text):
     text = str(text).lower()
     
-    # 1. Love / Affection (प्यार)
     if any(word in text for word in ['love', 'pyar', 'pyaar', 'ishq', 'dil', 'heart', 'beautiful', 'cute', 'kiss', 'romantic']):
         return random.choice(["❤", "🥰", "😍", "❤️‍🔥", "💘", "😘", "💋"])
-    
-    # 2. Funny / Laughing (हंसी/मज़ाक)
     elif any(word in text for word in ['funny', 'haha', 'lol', 'lmao', 'joke', 'मजाक', '😂', 'rofl', 'comedy', 'fun', 'hilarious']):
         return random.choice(["🤣", "😁", "🤪", "🤡"])
-    
-    # 3. Sad / Crying (दुखी)
-    elif any(word in text for word in ['sad', 'bad', 'crying', 'दुखी', 'खराब', 'sorry', 'rip', 'broken', 'cry', 'pain', 'hurt', 'miss']):
+    elif any(word in text for word in ['sad', 'bad', 'crying', 'दुखी', 'खराब', 'sorry', 'rip', 'broken', 'cry', 'pain', 'hurt']):
         return random.choice(["😢", "😭", "💔", "🥀"])
-    
-    # 4. Angry / Annoyed (गुस्सा)
     elif any(word in text for word in ['angry', 'mad', 'wtf', 'गुस्सा', 'hate', 'fuck', 'shit', 'idiot', 'stupid', 'annoy']):
         return random.choice(["🤬", "😡", "😈", "🖕"])
-    
-    # 5. Shocked / Surprised (आश्चर्य)
     elif any(word in text for word in ['wow', 'amazing', 'omg', 'shocking', 'surprise', 'crazy', 'insane', 'whoa', 'omfg']):
         return random.choice(["😱", "🤯", "😲", "👀"])
-    
-    # 6. Disgust / Sick (खराब/घिनौना)
     elif any(word in text for word in ['gross', 'eww', 'sick', 'vomit', 'disgusting', 'dirty', 'kachra', 'ganda']):
         return random.choice(["🤮", "💩", "🥴"])
-    
-    # 7. Celebration / Winning (जीत/पार्टी)
-    elif any(word in text for word in ['win', 'won', 'party', 'congrats', 'celebrate', 'victory', 'champion', 'success', 'bhadhai']):
+    elif any(word in text for word in ['win', 'won', 'party', 'congrats', 'celebrate', 'victory', 'champion', 'success']):
         return random.choice(["🎉", "🍾", "🏆", "👏", "💯"])
-    
-    # 8. Fire / Hype (शानदार)
     elif any(word in text for word in ['fire', 'lit', 'hype', 'awesome', 'great', 'best', 'epic', 'mast', 'kadak', 'jhakaas']):
         return random.choice(["🔥", "⚡", "💯"])
-    
-    # 9. Thanks / Praying (धन्यवाद)
     elif any(word in text for word in ['thanks', 'thank you', 'dhanyawad', 'shukriya', 'pray', 'bless', 'god', 'please']):
         return random.choice(["🙏", "😇", "🤝"])
-    
-    # 10. Thinking / Confused (सोच)
     elif any(word in text for word in ['what', 'why', 'how', 'confused', 'think', 'soch', 'kya', 'kaise', 'hmm']):
         return random.choice(["🤔", "🤨", "😐"])
-    
-    # 11. Bored / Tired (बोरियत/नींद)
     elif any(word in text for word in ['bored', 'tired', 'sleepy', 'good night', 'boring', 'thak', 'neend']):
         return random.choice(["🥱", "😴"])
-
-    # 12. Default / Random (अगर कुछ समझ न आए तो 15+ पॉजिटिव और फन इमोजी)
     else:
+        # Default Random Positive/Fun Emojis
         return random.choice(["👍", "🔥", "❤", "⚡", "💯", "👌", "👏", "🥰", "😁", "👻", "🐳", "🌚", "🦄"])
 
 @app.on_message((filters.channel | filters.group) & ~filters.service)
@@ -118,8 +109,8 @@ async def mood_reaction_handler(client, message):
     text_content = message.text or message.caption or ""
     reaction_emoji = get_mood_emoji(text_content)
     
-    # Direct Official API Request (No Freeze, No Pyrogram Error)
-    safe_react(message.chat.id, message.id, reaction_emoji)
+    # 100% Fail-Proof Call (Reaction first, Reply second)
+    await safe_react_or_reply(message, reaction_emoji)
 
 # --- ⚙️ 5. ADMIN PANEL & ANALYTICS (/panel) ---
 @app.on_message(filters.command("panel") & filters.private)
@@ -269,7 +260,7 @@ async def start_command(client, message):
             except:
                 pass
 
-    # 🔗 PRO Single Click Add Admin Link
+    # 🔗 PRO Single Click Add Admin Link (All Permissions)
     add_link = f"https://t.me/{bot_info.username}?startchannel=true&admin=post_messages+edit_messages+delete_messages+invite_users+manage_chat+pin_messages"
     
     welcome_msg = (
@@ -280,7 +271,7 @@ async def start_command(client, message):
         "बस नीचे दिए गए ➕ बटन पर क्लिक करें और मुझे अपने चैनल/ग्रुप में **Admin** बना लें!"
     )
 
-    # 📱 Clean Social Media Integration
+    # 📱 Clean Social Media Integration (@openboo506) & Core Buttons
     keyboard = InlineKeyboardMarkup([
         [InlineKeyboardButton("➕ Add Bot to Channel / Group", url=add_link)],
         [InlineKeyboardButton("🎁 Refer & Earn (₹5/Refer)", callback_data="btn_refer")],
@@ -360,7 +351,7 @@ if __name__ == "__main__":
     # 1. Run Web Server for Render
     threading.Thread(target=run_server, daemon=True).start()
     
-    # 2. Send Start Notification smoothly without breaking Pyrogram Event Loop
+    # 2. Send Start Notification safely
     threading.Thread(target=send_startup_notification, daemon=True).start()
     
     # 3. Start Pyrogram Bot
