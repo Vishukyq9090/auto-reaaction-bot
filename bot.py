@@ -53,7 +53,6 @@ async def safe_react_or_reply(message, emoji):
         "reaction": [{"type": "emoji", "emoji": emoji}]
     }
     
-    # Official API से रिएक्शन चिपकाने की कोशिश
     def make_request():
         try:
             req = urllib.request.Request(url, data=json.dumps(data).encode('utf-8'), headers={'Content-Type': 'application/json'})
@@ -64,7 +63,6 @@ async def safe_react_or_reply(message, emoji):
 
     success = await loop.run_in_executor(None, make_request)
     
-    # अगर Telegram ने रिएक्शन ब्लॉक कर दिया, तो बैकअप के तौर पर Reply करेगा
     if not success:
         try:
             await message.reply_text(emoji)
@@ -98,7 +96,6 @@ def get_mood_emoji(text):
     elif any(word in text for word in ['bored', 'tired', 'sleepy', 'good night', 'boring', 'thak', 'neend']):
         return random.choice(["🥱", "😴"])
     else:
-        # Default Random Positive/Fun Emojis
         return random.choice(["👍", "🔥", "❤", "⚡", "💯", "👌", "👏", "🥰", "😁", "👻", "🐳", "🌚", "🦄"])
 
 @app.on_message((filters.channel | filters.group) & ~filters.service)
@@ -108,11 +105,53 @@ async def mood_reaction_handler(client, message):
         
     text_content = message.text or message.caption or ""
     reaction_emoji = get_mood_emoji(text_content)
-    
-    # 100% Fail-Proof Call (Reaction first, Reply second)
     await safe_react_or_reply(message, reaction_emoji)
 
-# --- ⚙️ 5. ADMIN PANEL & ANALYTICS (/panel) ---
+
+# --- ✨ 5. MAGIC FSUB (Single Click Private/Public Channel Auto-Add) ---
+@app.on_chat_member_updated(filters.channel | filters.group)
+async def magic_fsub_handler(client, update):
+    try:
+        bot_info = await client.get_me()
+        # अगर बॉट को एडमिन बनाया गया है
+        if update.new_chat_member and update.new_chat_member.user.id == bot_info.id:
+            status = str(update.new_chat_member.status).lower()
+            if "administrator" in status or "owner" in status:
+                chat_id = update.chat.id
+                
+                # चैनल में वेलकम मैसेज
+                await client.send_message(chat_id, "✅ **Pro Bot Successfully Added as Admin!**\nमैं हर पोस्ट पर रिएक्शन देने के लिए तैयार हूँ।")
+
+                # 👑 MAGIC TRICK: अगर एडमिन ने ऐड किया है, तो इसे FSub में डायरेक्ट जोड़ लो (Private हो या Public)
+                if update.from_user and update.from_user.id == ADMIN_ID:
+                    invite_link = update.chat.invite_link
+                    if not invite_link:
+                        try:
+                            invite_link = await client.export_chat_invite_link(chat_id)
+                        except Exception:
+                            invite_link = ""
+                    
+                    if invite_link:
+                        fsub_data = global_settings_col.find_one({"id": "fsub"})
+                        channels = fsub_data.get("channels", []) if fsub_data else []
+                        
+                        if not any(c["chat_id"] == chat_id for c in channels):
+                            channels.append({"chat_id": chat_id, "link": invite_link})
+                            global_settings_col.update_one({"id": "fsub"}, {"$set": {"channels": channels}}, upsert=True)
+                            
+                            # Owner को प्राइवेट में कन्फर्मेशन भेजना
+                            await client.send_message(
+                                ADMIN_ID,
+                                f"🎉 **Magic FSub Configured! (Single Click Add)**\n\n"
+                                f"📢 **Channel:** `{update.chat.title}`\n"
+                                f"🆔 **ID:** `{chat_id}`\n\n"
+                                f"✅ इस चैनल को Force Subscribe लिस्ट में ऑटोमैटिकली जोड़ दिया गया है!"
+                            )
+    except Exception as e:
+        print("Magic FSub Error:", e)
+
+
+# --- ⚙️ 6. ADMIN PANEL & ANALYTICS (/panel) ---
 @app.on_message(filters.command("panel") & filters.private)
 async def owner_panel(client, message):
     if ADMIN_ID == 0 or message.from_user.id != ADMIN_ID:
@@ -129,14 +168,15 @@ async def owner_panel(client, message):
         f"👥 Total Registered Users: **{users_count}**\n"
         f"📢 Active FSub Channels: **{len(fsub_channels)}**\n\n"
         "🛠 **Commands Guide:**\n"
-        "🔸 `/addfsub @username` - FSub चैनल जोड़ें\n"
+        "🔸 `बॉट को चैनल में एडमिन बनाएं` - FSub में अपने आप जुड़ जाएगा (Magic FSub)\n"
+        "🔸 `/addfsub -1001234...` - Private/Public मैन्युअल जोड़ें\n"
         "🔸 `/delfsub` - सभी FSub चैनल्स हटा दें\n"
         "🔸 `/broadcast` - किसी मैसेज का रिप्लाई करके ब्रॉडकास्ट करें\n"
         "🔸 `/pin` - किसी मैसेज का रिप्लाई करके पिन करें\n"
     )
     await message.reply(text)
 
-# --- 📢 6. BROADCAST & PIN MESSAGES ---
+# --- 📢 7. BROADCAST & PIN MESSAGES ---
 @app.on_message(filters.command("broadcast") & filters.private)
 async def broadcast_msg(client, message):
     if ADMIN_ID == 0 or message.from_user.id != ADMIN_ID:
@@ -170,19 +210,22 @@ async def pin_msg(client, message):
             except Exception as e:
                 await message.reply(f"❌ **पिन एरर:** {e}")
 
-# --- 🔗 7. SINGLE CLICK FSUB MANAGEMENT ---
+# --- 🔗 8. MANUAL FSUB COMMAND (Supports Private -100 IDs) ---
 @app.on_message(filters.command("addfsub") & filters.private)
 async def add_fsub(client, message):
     if ADMIN_ID == 0 or message.from_user.id != ADMIN_ID:
         return
         
     if len(message.command) < 2:
-        await message.reply("❌ **सही तरीका:** `/addfsub @yourchannel`")
+        await message.reply("❌ **सही तरीका:**\nPublic: `/addfsub @yourchannel`\nPrivate: `/addfsub -100123456789`")
         return
         
-    channel_username = message.command[1]
+    channel_input = message.command[1]
     try:
-        chat_info = await client.get_chat(channel_username)
+        # अगर ID -100 से शुरू होती है तो उसे Integer में बदल देगा
+        chat_id = int(channel_input) if channel_input.startswith("-100") else channel_input
+        chat_info = await client.get_chat(chat_id)
+        
         invite_link = chat_info.invite_link or await client.export_chat_invite_link(chat_info.id)
         
         fsub_data = global_settings_col.find_one({"id": "fsub"})
@@ -194,7 +237,7 @@ async def add_fsub(client, message):
             
         await message.reply(f"✅ **Force Subscribe सेट हो गया:** {chat_info.title}\n*(Total FSub Channels: {len(channels)})*")
     except Exception as e:
-        await message.reply(f"❌ **एरर:** कृपया पहले बॉट को उस चैनल में Admin बनाएं।\nDetail: {e}")
+        await message.reply(f"❌ **एरर:** कृपया पहले बॉट को उस चैनल में Admin बनाएं या ID चेक करें।\nDetail: {e}")
 
 @app.on_message(filters.command("delfsub") & filters.private)
 async def del_fsub(client, message):
@@ -203,7 +246,7 @@ async def del_fsub(client, message):
     global_settings_col.update_one({"id": "fsub"}, {"$set": {"channels": []}}, upsert=True)
     await message.reply("✅ **सभी Force Subscribe चैनल्स हटा दिए गए हैं!**")
 
-# --- ✨ 8. START COMMAND (Multi-FSub, Registration, Refer & Earn, Socials) ---
+# --- ✨ 9. START COMMAND (Multi-FSub, Registration, Refer & Earn, Socials) ---
 @app.on_message(filters.command("start") & filters.private)
 async def start_command(client, message):
     user_id = message.from_user.id
@@ -285,7 +328,7 @@ async def start_command(client, message):
     await message.reply_text(welcome_msg, reply_markup=keyboard)
 
 
-# --- 🎁 9. REFER & EARN BUTTON LOGIC ---
+# --- 🎁 10. REFER & EARN BUTTON LOGIC ---
 @app.on_callback_query()
 async def callback_handler(client, callback_query):
     user_id = callback_query.from_user.id
@@ -328,14 +371,14 @@ async def callback_handler(client, callback_query):
             [InlineKeyboardButton("➕ Add Bot to Channel / Group", url=add_link)],
             [InlineKeyboardButton("🎁 Refer & Earn (₹5/Refer)", callback_data="btn_refer")],
             [
-                InlineKeyboardButton("📱 Telegram", url="https://t.me/openboo506"),
-                InlineKeyboardButton("📸 Instagram", url="https://instagram.com/openboo506"),
+                InlineKeyboardButton("📱 Telegram", url="https://t.me/@openboo506"),
+                InlineKeyboardButton("📸 Instagram", url="https://instagram.com/@openboo506"),
                 InlineKeyboardButton("▶️ YouTube", url="https://youtube.com/@openboo506")
             ]
         ])
         await msg.edit_text(welcome_msg, reply_markup=keyboard)
 
-# --- 🟢 10. DIRECT STARTUP NOTIFICATION (FIXED FREEZE ISSUE) ---
+# --- 🟢 11. DIRECT STARTUP NOTIFICATION (FIXED FREEZE ISSUE) ---
 def send_startup_notification():
     if ADMIN_ID != 0:
         url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
@@ -355,5 +398,5 @@ if __name__ == "__main__":
     threading.Thread(target=send_startup_notification, daemon=True).start()
     
     # 3. Start Pyrogram Bot
-    print("Pro Bot Started Worldwide!")
+    print("Pro Bot Started Worldwide! (With Single Click Private Fsub)")
     app.run()
