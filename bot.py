@@ -319,9 +319,9 @@ async def start_command(client, message):
         [InlineKeyboardButton("➕ Add Bot to Channel / Group", url=add_link)],
         [InlineKeyboardButton("🎁 Refer & Earn (₹5/Refer)", callback_data="btn_refer")],
         [
-            InlineKeyboardButton("📱 Telegram", url="https://t.me/openboo506"),
-            InlineKeyboardButton("📸 Instagram", url="https://instagram.com/openboo506"),
-            InlineKeyboardButton("▶️ YouTube", url="https://youtube.com/@openboo506")
+            InlineKeyboardButton("📱 Telegram", url="https://t.me/openbook506"),
+            InlineKeyboardButton("📸 Instagram", url="https://instagram.com/openbook506"),
+            InlineKeyboardButton("▶️ YouTube", url="https://youtube.com/openbook506")
         ]
     ])
     
@@ -371,9 +371,9 @@ async def callback_handler(client, callback_query):
             [InlineKeyboardButton("➕ Add Bot to Channel / Group", url=add_link)],
             [InlineKeyboardButton("🎁 Refer & Earn (₹5/Refer)", callback_data="btn_refer")],
             [
-                InlineKeyboardButton("📱 Telegram", url="https://t.me/@openboo506"),
-                InlineKeyboardButton("📸 Instagram", url="https://instagram.com/@openboo506"),
-                InlineKeyboardButton("▶️ YouTube", url="https://youtube.com/@openboo506")
+                InlineKeyboardButton("📱 Telegram", url="https://t.me/openbook506"),
+                InlineKeyboardButton("📸 Instagram", url="https://instagram.com/openbook506"),
+                InlineKeyboardButton("▶️ YouTube", url="https://youtube.com/openbook506")
             ]
         ])
         await msg.edit_text(welcome_msg, reply_markup=keyboard)
