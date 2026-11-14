@@ -1,0 +1,44 @@
+name: Auto Reaction Bot 24x7
+
+on:
+  push:
+    branches:
+      - main
+  schedule:
+    - cron: '25 */5 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: write
+
+concurrency:
+  group: auto-reaction-bot-live
+  cancel-in-progress: true
+
+jobs:
+  run-reaction-bot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+      - name: Install Dependencies
+        run: pip install pyrogram TgCrypto Flask pymongo
+      - name: Run Bot (5.5 Hours Cycle)
+        env:
+          API_ID: ${{ secrets.API_ID }}
+          API_HASH: ${{ secrets.API_HASH }}
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          MONGO_URI: ${{ secrets.MONGO_URI }}
+          ADMIN_ID: "7412791600"
+        run: timeout 19800s python -u bot.py || true
+      - name: Auto Restart Next Session
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh workflow run reaction_bot.yml --repo ${{ github.repository }} || true
