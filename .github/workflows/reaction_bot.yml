@@ -18,17 +18,23 @@ concurrency:
 
 jobs:
   run-reaction-bot:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 350
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
-      - name: Setup Python
+
+      - name: Setup Python with Pip Cache
         uses: actions/setup-python@v5
         with:
-          python-version: '3.10'
+          python-version: '3.11'
+          cache: 'pip'
+
       - name: Install Dependencies
-        run: pip install pyrogram TgCrypto Flask pymongo
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
       - name: Run Bot (5.5 Hours Cycle)
         env:
           API_ID: ${{ secrets.API_ID }}
@@ -36,9 +42,10 @@ jobs:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           MONGO_URI: ${{ secrets.MONGO_URI }}
           ADMIN_ID: "7412791600"
-        run: timeout 19800s python -u bot.py || true
+        run: timeout --signal=SIGINT 19800s python -u bot.py || true
+
       - name: Auto Restart Next Session
-        if: always()
+        if: ${{ !cancelled() }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: gh workflow run reaction_bot.yml --repo ${{ github.repository }} || true
